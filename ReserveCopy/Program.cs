@@ -1,25 +1,25 @@
 ﻿using Microsoft.Extensions.Configuration;
 using ReserveCopy;
 using NLog;
+using NLog.Web;
 
 
-
-NLog.LogManager.Setup().LoadConfiguration(builder => {
-    builder.ForLogger().FilterMinLevel(LogLevel.Debug).WriteToConsole();
-    builder.ForLogger().FilterMinLevel(LogLevel.Debug).WriteToFile(fileName: $"{DateTime.Now}.txt".Replace(':', '-'));
-});
-NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", false, true);
 IConfigurationRoot configuration = builder.Build();
 
-logger.Info("\nСтарт приложения");
+Logger logger = LogManager.Setup()
+    .LoadConfigurationFromAppSettings()
+    .GetCurrentClassLogger();
 
-var newFolderPath = configuration.GetSection("Data:newFolder").Value + $"\\{DateTime.Now}".Replace(':', '-');
-var newFolderPathForDeleting = newFolderPath;
-var baseFolders = configuration.GetSection("Data:Base").Get<string[]>();
-CopyFiles.Copy(configuration, logger, newFolderPath, baseFolders , newFolderPathForDeleting);
+logger.Info("\nСтарт приложения\n");
 
-logger.Info("\nОкончание работы приложения");
+
+var target = configuration.GetSection("Config:Target").Value + $"\\{DateTime.Now}".Replace(':', '-');
+var source = configuration.GetSection("Config:Source").Value.Replace(" ", "").Split(',');
+var strategy = configuration.GetSection("Config:BrokenFileOrDirectoryStrategy").Value.Replace(" ", "");
+CopyFiles.Copy(logger, target, source, strategy);
+
+logger.Info("\nОкончание работы приложения\n");
 
 
